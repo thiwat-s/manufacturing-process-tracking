@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+out
+coverage
+playwright-report
+test-results
+artifacts
+*.tsbuildinfo
+.env
+.env.*
+manufacturing-process-tracking.zip
+*.log

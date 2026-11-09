@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+coverage
+playwright-report
+test-results
+/artifacts/
+.git/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+manufacturing-process-tracking.zip
+*.log
+.turbo/

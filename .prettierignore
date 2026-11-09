@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+.git/
+package-lock.json
+next-env.d.ts
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+prisma/migrations/

@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ResourceCategory {
+  MATERIAL
+  MACHINE_TIME
+  LABOUR_TIME
+}
+
+enum ProductionEventType {
+  ORDER_CREATED
+  STEP_STARTED
+  CONSUMPTION_RECORDED
+  STEP_COMPLETED
+}
+
+model Order {
+  id          String            @id @default(uuid()) @db.Uuid
+  orderNumber String            @unique @map("order_number")
+  productName String            @map("product_name")
+  quantity    Int
+  dueDate     DateTime?         @map("due_date") @db.Date
+  notes       String?
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  steps       OrderStep[]
+  events      ProductionEvent[]
+
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model ProductionStep {
+  id         String      @id @default(uuid()) @db.Uuid
+  code       String      @unique
+  name       String
+  sequence   Int         @unique
+  orderSteps OrderStep[]
+
+  @@map("production_steps")
+}
+
+model OrderStep {
+  id               String                @id @default(uuid()) @db.Uuid
+  orderId          String                @map("order_id") @db.Uuid
+  productionStepId String                @map("production_step_id") @db.Uuid
+  status           StepStatus            @default(PENDING)
+  startedAt        DateTime?             @map("started_at")
+  completedAt      DateTime?             @map("completed_at")
+  order            Order                 @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  productionStep   ProductionStep        @relation(fields: [productionStepId], references: [id], onDelete: Restrict)
+  consumptions     ResourceConsumption[]
+  events           ProductionEvent[]
+
+  @@unique([orderId, productionStepId])
+  @@index([status, productionStepId])
+  @@map("order_steps")
+}
+
+model Resource {
+  id           String                @id @default(uuid()) @db.Uuid
+  name         String
+  category     ResourceCategory
+  unit         String
+  isActive     Boolean               @default(true) @map("is_active")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+  consumptions ResourceConsumption[]
+
+  @@index([category, isActive])
+  @@map("resources")
+}
+
+model ResourceConsumption {
+  id                       String           @id @default(uuid()) @db.Uuid
+  orderStepId              String           @map("order_step_id") @db.Uuid
+  resourceId               String           @map("resource_id") @db.Uuid
+  quantity                 Decimal          @db.Decimal(14, 4)
+  resourceNameSnapshot     String           @map("resource_name_snapshot")
+  resourceCategorySnapshot ResourceCategory @map("resource_category_snapshot")
+  unitSnapshot             String           @map("unit_snapshot")
+  notes                    String?
+  recordedAt               DateTime         @default(now()) @map("recorded_at")
+  orderStep                OrderStep        @relation(fields: [orderStepId], references: [id], onDelete: Restrict)
+  resource                 Resource         @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+
+  @@index([orderStepId, recordedAt])
+  @@index([resourceId, recordedAt])
+  @@map("resource_consumptions")
+}
+
+model ProductionEvent {
+  id          String              @id @default(uuid()) @db.Uuid
+  orderId     String              @map("order_id") @db.Uuid
+  orderStepId String?             @map("order_step_id") @db.Uuid
+  eventType   ProductionEventType @map("event_type")
+  description String
+  metadata    Json                @default("{}")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  order       Order               @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderStep   OrderStep?          @relation(fields: [orderStepId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, createdAt])
+  @@map("production_events")
+}
+
+model OrderNumberCounter {
+  year  Int @id
+  value Int @default(0)
+
+  @@map("order_number_counters")
+}
